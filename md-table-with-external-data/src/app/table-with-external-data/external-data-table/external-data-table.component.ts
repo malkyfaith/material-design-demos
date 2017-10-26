@@ -1,9 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { DataSource } from '@angular/cdk/collections';
 import { Observable } from 'rxjs/Observable';
+import { MatPaginator } from '@angular/material';
 import 'rxjs/add/observable/of';
 import { Http } from '@angular/http';
 import 'rxjs/add/operator/map';
+import 'rxjs/add/observable/merge';
+import { BehaviorSubject } from 'rxjs/BehaviorSubject';
 
 @Component({
   selector: 'app-external-data-table',
@@ -14,13 +17,15 @@ export class ExternalDataTableComponent implements OnInit {
   displayedColumns = ['id', 'name', 'progress', 'color'];
   database: ExternalDatabase = null;
   dataSource: ExternalDataSource = null;
+  @ViewChild(MatPaginator)
+  paginator: MatPaginator;
 
   constructor(private http: Http) {
-    this.database = new ExternalDatabase(http);
-    this.dataSource = new ExternalDataSource(this.database);
   }
 
   ngOnInit() {
+    this.database = new ExternalDatabase(this.http);
+    this.dataSource = new ExternalDataSource(this.database, this.paginator);
   }
 
 }
@@ -40,12 +45,26 @@ export interface UserData {
  * we return a stream that contains only one set of data that doesn't change.
  */
 export class ExternalDataSource extends DataSource<any> {
-  constructor(private database: ExternalDatabase) {
+
+
+  constructor(private database: ExternalDatabase, private _paginator: MatPaginator) {
     super();
   }
   /** Connect function called by the table to retrieve one stream containing the data to render. */
   connect(): Observable<UserData[]> {
-    return this.database.getUsersData();
+    const displayDataChanges = [
+      this.database.dataChange,
+      this._paginator.page,
+    ];
+    //return this.database.getUsersData();
+    return Observable.merge(...displayDataChanges).map(() => {
+      const data = this.database.data.slice();
+
+      // Grab the page's slice of data.
+      const startIndex = this._paginator.pageIndex * this._paginator.pageSize;
+      return data.splice(startIndex, this._paginator.pageSize);
+    });
+
   }
 
   disconnect() { }
@@ -56,11 +75,16 @@ export class ExternalDataSource extends DataSource<any> {
 export class ExternalDatabase {
   private url = 'http://www.mocky.io/v2/59ed6dd43300002b00b5c5ae';  // URL to web API
 
-  constructor(private http: Http) { }
+  dataChange: BehaviorSubject<UserData[]> = new BehaviorSubject<UserData[]>([]);
+  get data(): UserData[] { return this.dataChange.value; }
 
-  getUsersData(): Observable<UserData[]> {
-    return this.http.get(this.url).map(result => {
-      return result.json();
+  constructor(private http: Http) {
+    this.getUsersData();
+  }
+
+  getUsersData() {
+    this.http.get(this.url).subscribe(result => {
+      this.dataChange.next(result.json());
     });
   }
 
