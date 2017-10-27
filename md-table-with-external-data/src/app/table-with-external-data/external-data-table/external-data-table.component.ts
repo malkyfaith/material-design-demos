@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { DataSource } from '@angular/cdk/collections';
 import { Observable } from 'rxjs/Observable';
 import { MatPaginator } from '@angular/material';
@@ -7,6 +7,9 @@ import { Http } from '@angular/http';
 import 'rxjs/add/operator/map';
 import 'rxjs/add/observable/merge';
 import { BehaviorSubject } from 'rxjs/BehaviorSubject';
+import 'rxjs/add/observable/fromEvent';
+import 'rxjs/add/operator/debounceTime';
+import 'rxjs/add/operator/distinctUntilChanged';
 
 @Component({
   selector: 'app-external-data-table',
@@ -17,8 +20,9 @@ export class ExternalDataTableComponent implements OnInit {
   displayedColumns = ['id', 'name', 'progress', 'color'];
   database: ExternalDatabase = null;
   dataSource: ExternalDataSource = null;
-  @ViewChild(MatPaginator)
-  paginator: MatPaginator;
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+
+  @ViewChild('filter') filter: ElementRef;
 
   constructor(private http: Http) {
   }
@@ -26,6 +30,13 @@ export class ExternalDataTableComponent implements OnInit {
   ngOnInit() {
     this.database = new ExternalDatabase(this.http);
     this.dataSource = new ExternalDataSource(this.database, this.paginator);
+    // Observable.fromEvent(this.filter.nativeElement, 'keyup')
+    // .debounceTime(150)
+    // .distinctUntilChanged()
+    // .subscribe(() => {
+    //   if (cls!this.dataSource) { return; }
+    //   this.dataSource.filter = this.filter.nativeElement.value;
+    // });
   }
 
 }
@@ -45,7 +56,9 @@ export interface UserData {
  * we return a stream that contains only one set of data that doesn't change.
  */
 export class ExternalDataSource extends DataSource<any> {
-
+  _filterChange = new BehaviorSubject('');
+  get filter(): string { return this._filterChange.value; }
+  set filter(filter: string) { this._filterChange.next(filter); }
 
   constructor(private database: ExternalDatabase, private _paginator: MatPaginator) {
     super();
@@ -62,7 +75,12 @@ export class ExternalDataSource extends DataSource<any> {
 
       // Grab the page's slice of data.
       const startIndex = this._paginator.pageIndex * this._paginator.pageSize;
-      return data.splice(startIndex, this._paginator.pageSize);
+      return data.splice(startIndex, this._paginator.pageSize)
+      
+      // .filter((item: UserData) => {
+      //   let searchStr = (item.name + item.color).toLowerCase();
+      //   return searchStr.indexOf(this.filter.toLowerCase()) != -1;
+      // });
     });
 
   }

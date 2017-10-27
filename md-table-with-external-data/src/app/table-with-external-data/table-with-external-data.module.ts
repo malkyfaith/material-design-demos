@@ -5,13 +5,14 @@ import {
   MatPaginatorModule,
   MatSortModule,
   MatTableModule,
+  MatInputModule
 } from '@angular/material';
 import { CdkTableModule } from '@angular/cdk/table';
 import { HttpModule } from '@angular/http';
 
 @NgModule({
   imports: [
-    CommonModule, HttpModule, CdkTableModule, MatPaginatorModule, MatSortModule, MatTableModule
+    CommonModule, HttpModule, CdkTableModule, MatPaginatorModule, MatSortModule, MatTableModule, MatInputModule
   ],
   declarations: [ExternalDataTableComponent],
   exports: [ExternalDataTableComponent]
