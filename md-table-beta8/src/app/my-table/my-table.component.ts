@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild } from '@angular/core';
 import { Http, Response } from '@angular/http';
 import { DataSource } from '@angular/cdk';
 import { BehaviorSubject } from 'rxjs/BehaviorSubject';
@@ -6,21 +6,45 @@ import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/operator/startWith';
 import 'rxjs/add/observable/merge';
 import 'rxjs/add/operator/map';
+import { TableService } from './table.service';
+import { MdPaginator } from '@angular/material';
+import { tap } from 'rxjs/operators/tap';
 
 @Component({
   selector: 'app-my-table',
   templateUrl: './my-table.component.html',
   styleUrls: ['./my-table.component.css']
 })
-export class MyTableComponent {
+export class MyTableComponent implements OnInit, AfterViewInit {
 
   displayedColumns = ['number', 'state', 'title'];
-  exampleDatabase: ExampleHttpDatabase | null;
   dataSource: ExampleDataSource | null;
+  @ViewChild(MdPaginator) paginator: MdPaginator;
 
-  constructor(http: Http) {
-    this.exampleDatabase = new ExampleHttpDatabase(http);
-    this.dataSource = new ExampleDataSource(this.exampleDatabase);
+  constructor(private tableService: TableService) {
+    this.dataSource = new ExampleDataSource(this.tableService);
+    this.dataSource.loadData();
+  }
+
+  ngOnInit() {
+    this.dataSource = new ExampleDataSource(this.tableService);
+    this.dataSource.loadData();
+  }
+
+  ngAfterViewInit() {
+    this.paginator.page
+      .pipe(
+      tap(() => {
+        console.log(this.paginator.pageIndex);
+        console.log(this.paginator.pageSize);
+        this.loadPage();})
+      )
+      .subscribe();
+  }
+
+  loadPage() {
+    console.log('paginate');
+    this.dataSource.loadData();
   }
 
 }
@@ -32,26 +56,22 @@ export interface MyGithubIssue {
 }
 
 /** An example database that the data source uses to retrieve data for the table. */
-export class ExampleHttpDatabase {
-  private issuesUrl = 'https://api.github.com/repos/angular/material2/issues';  // URL to web API
+// export class ExampleHttpDatabase {
+//   private issuesUrl = 'https://api.github.com/repos/angular/material2/issues';  // URL to web API
 
-  getRepoIssues(): Observable<MyGithubIssue[]> {
-    return this.http.get(this.issuesUrl)
-      .map(this.extractData);
-  }
+//   dataChange: BehaviorSubject<MyGithubIssue[]> = new BehaviorSubject<MyGithubIssue[]>([]);
+//   get data(): MyGithubIssue[] { return this.dataChange.value; }
 
-  extractData(result: Response): MyGithubIssue[] {
-    return result.json().map(issue => {
-      return {
-        number: issue.number,
-        state: issue.state,
-        title: issue.title,
-      };
-    });
-  }
+//   getRepoIssues() {
+//     this.http.get(this.issuesUrl).subscribe(result => {
+//       this.dataChange.next(result.json());
+//     });
+//   }
 
-  constructor(private http: Http) { }
-}
+//   constructor(private http: Http) {
+//     this.getRepoIssues();
+//   }
+// }
 
 /**
  * Data source to provide what data should be rendered in the table. Note that the data source
@@ -61,13 +81,30 @@ export class ExampleHttpDatabase {
  * should be rendered.
  */
 export class ExampleDataSource extends DataSource<MyGithubIssue> {
-  constructor(private _exampleDatabase: ExampleHttpDatabase) {
+  private issueSubject = new BehaviorSubject<MyGithubIssue[]>([]);
+  private loadingSubject = new BehaviorSubject<boolean>(false);
+  public loading$ = this.loadingSubject.asObservable();
+  constructor(private tableSevice: TableService) {
     super();
   }
 
   /** Connect function called by the table to retrieve one stream containing the data to render. */
   connect(): Observable<MyGithubIssue[]> {
-    return this._exampleDatabase.getRepoIssues();
+    // const displayDataChanges = [
+    //   this.database.dataChange
+    // ];
+    // return Observable.merge(...displayDataChanges).map(() => {
+    //   return this.database.data.slice();
+    // });
+    return this.issueSubject.asObservable();
+  }
+
+  loadData() {
+    this.loadingSubject.next(true);
+    this.tableSevice.findData().subscribe((data: MyGithubIssue[]) => {
+      console.log(data);
+      this.issueSubject.next(data);
+    });
   }
 
   disconnect() { }
