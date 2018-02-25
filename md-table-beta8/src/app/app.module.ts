@@ -1,7 +1,7 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { CdkTableModule } from '@angular/cdk';
-import { MdTableModule, MdProgressSpinnerModule, MdPaginatorModule } from '@angular/material';
+import { MdTableModule, MdProgressSpinnerModule, MdPaginatorModule, MdSortModule } from '@angular/material';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import { AppComponent } from './app.component';
 import { MyTableComponent } from './my-table/my-table.component';
@@ -20,7 +20,8 @@ import { TableService } from './my-table/table.service';
     MdTableModule,
     CdkTableModule,
     MdProgressSpinnerModule,
-    MdPaginatorModule
+    MdPaginatorModule,
+    MdSortModule
   ],
   providers: [TableService],
   bootstrap: [AppComponent]

@@ -7,8 +7,9 @@ import 'rxjs/add/operator/startWith';
 import 'rxjs/add/observable/merge';
 import 'rxjs/add/operator/map';
 import { TableService } from './table.service';
-import { MdPaginator } from '@angular/material';
+import { MdPaginator, MdSort } from '@angular/material';
 import { tap } from 'rxjs/operators/tap';
+import { merge } from 'rxjs/observable/merge';
 
 @Component({
   selector: 'app-my-table',
@@ -20,6 +21,7 @@ export class MyTableComponent implements OnInit, AfterViewInit {
   displayedColumns = ['number', 'state', 'title'];
   dataSource: ExampleDataSource | null;
   @ViewChild(MdPaginator) paginator: MdPaginator;
+  @ViewChild(MdSort) sort: MdSort;
 
   constructor(private tableService: TableService) {
     this.dataSource = new ExampleDataSource(this.tableService);
@@ -32,18 +34,16 @@ export class MyTableComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    this.paginator.page
+    this.sort.mdSortChange.subscribe(() => this.paginator.pageIndex = 0);
+    merge(this.sort.mdSortChange, this.paginator.page)
       .pipe(
-      tap(() => {
-        console.log(this.paginator.pageIndex);
-        console.log(this.paginator.pageSize);
-        this.loadPage();})
+      tap(() => this.loadPage())
       )
       .subscribe();
   }
 
   loadPage() {
-    console.log('paginate');
+    console.log('paginate and sort');
     this.dataSource.loadData();
   }
 
@@ -54,24 +54,6 @@ export interface MyGithubIssue {
   state: string;
   title: string;
 }
-
-/** An example database that the data source uses to retrieve data for the table. */
-// export class ExampleHttpDatabase {
-//   private issuesUrl = 'https://api.github.com/repos/angular/material2/issues';  // URL to web API
-
-//   dataChange: BehaviorSubject<MyGithubIssue[]> = new BehaviorSubject<MyGithubIssue[]>([]);
-//   get data(): MyGithubIssue[] { return this.dataChange.value; }
-
-//   getRepoIssues() {
-//     this.http.get(this.issuesUrl).subscribe(result => {
-//       this.dataChange.next(result.json());
-//     });
-//   }
-
-//   constructor(private http: Http) {
-//     this.getRepoIssues();
-//   }
-// }
 
 /**
  * Data source to provide what data should be rendered in the table. Note that the data source
@@ -90,12 +72,6 @@ export class ExampleDataSource extends DataSource<MyGithubIssue> {
 
   /** Connect function called by the table to retrieve one stream containing the data to render. */
   connect(): Observable<MyGithubIssue[]> {
-    // const displayDataChanges = [
-    //   this.database.dataChange
-    // ];
-    // return Observable.merge(...displayDataChanges).map(() => {
-    //   return this.database.data.slice();
-    // });
     return this.issueSubject.asObservable();
   }
 
