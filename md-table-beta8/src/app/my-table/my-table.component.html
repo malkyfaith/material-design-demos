@@ -1,0 +1,39 @@
+<div class="example-container md-elevation-z8">
+  <div class="spinner-container" *ngIf="dataSource.loading$ | async">
+    <md-progress-spinner></md-progress-spinner>
+  </div>
+  <md-table #table [dataSource]="dataSource"  mdSort mdSortActive="number" mdSortDirection="asc" mdSortDisableClear>
+
+    <!--- Note that these columns can be defined in any order.
+          The actual rendered columns are set as a property on the row definition" -->
+
+    <!-- Number Column -->
+    <ng-container cdkColumnDef="number">
+      <md-header-cell *cdkHeaderCellDef md-sort-header> Number </md-header-cell>
+      <md-cell *cdkCellDef="let row"> {{row.number}} </md-cell>
+    </ng-container>
+
+    <!-- Title Column -->
+    <ng-container cdkColumnDef="title">
+      <md-header-cell *cdkHeaderCellDef md-sort-header> Title </md-header-cell>
+      <md-cell *cdkCellDef="let row"> {{row.title}} </md-cell>
+    </ng-container>
+
+    <!-- State Column -->
+    <ng-container cdkColumnDef="state">
+      <md-header-cell *cdkHeaderCellDef md-sort-header> State </md-header-cell>
+      <md-cell *cdkCellDef="let row"> {{row.state}} </md-cell>
+    </ng-container>
+
+    <md-header-row *cdkHeaderRowDef="displayedColumns"></md-header-row>
+    <md-row *cdkRowDef="let row; columns: displayedColumns;"></md-row>
+  </md-table>
+  
+  <md-paginator [length]="50" [pageSize]="3"
+                   [pageSizeOptions]="[3, 5, 10]"></md-paginator>
+</div>
+
+
+<!-- Copyright 2017 Google Inc. All Rights Reserved.
+    Use of this source code is governed by an MIT-style license that
+    can be found in the LICENSE file at http://angular.io/license -->
